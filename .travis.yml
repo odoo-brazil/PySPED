@@ -22,6 +22,7 @@ before_install:
 install:
   - virtualenv .
   - bin/pip install -r requirements.txt
+  - bin/pip install -r test-requirements.txt
 
 script:
   - bin/python setup.py test

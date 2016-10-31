@@ -46,9 +46,9 @@ setup(
     description = 'PySPED is a library to implement all requirements of the public system of bookkeeping digital',
     long_description = open('README.rst').read(),
     install_requires=[
-        # List of dependencies is moved to pip-requirements.txt
+        # List of dependencies is moved to requirements.txt
     ],
     tests_require=[
-        'pyflakes>=0.6.1',
+        # List of dependencies is moved to test-requirements.txt
     ],
 )
