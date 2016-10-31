@@ -5,7 +5,6 @@ setup(
     version = "0.1.2",
     author = "Aristides Caldeira",
     author_email = 'aristides.caldeira@tauga.com.br',
-    test_suite='tests',
     keywords = ['nfe', 'nfse', 'cte', 'sped', 'edf', 'ecd'],
     classifiers=[
         'Development Status :: 4 - Beta',
