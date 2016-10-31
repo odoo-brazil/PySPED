@@ -46,8 +46,7 @@ setup(
     description = 'PySPED is a library to implement all requirements of the public system of bookkeeping digital',
     long_description = open('README.rst').read(),
     install_requires=[
-        'Geraldo >= 0.4.16',
-        'PyXMLSec >= 0.3.0'
+        # List of dependencies is moved to pip-requirements.txt
     ],
     tests_require=[
         'pyflakes>=0.6.1',

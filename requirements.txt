@@ -1,0 +1,3 @@
+-e git://github.com/odoo-brazil/pyxmlsec.git@master#egg=pyxmlsec
+-e git://github.com/odoo-brazil/geraldo.git@master#egg=geraldo
+
