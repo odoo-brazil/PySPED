@@ -12,3 +12,12 @@ build/
 dist/
 *egg*/
 docs/_build
+.coverage
+.idea/
+bin/
+include/
+lib/
+local/
+pip-selfcheck.json
+src/
+venv/
