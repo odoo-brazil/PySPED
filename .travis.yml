@@ -14,6 +14,11 @@ addons:
     packages:
       - libxml2-dev
       - libxmlsec1-dev
+      - python-dev
+      - libffi-dev
+      - libxslt1-dev
+      - libssl-dev
+      - libxmlsec1-dev
 
 env:
   - LINT="1" FLAKE="0" TEST="0"
