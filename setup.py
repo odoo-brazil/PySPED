@@ -5,6 +5,7 @@ setup(
     version = "0.1.2",
     author = "Aristides Caldeira",
     author_email = 'aristides.caldeira@tauga.com.br',
+    test_suite='test',
     keywords = ['nfe', 'nfse', 'cte', 'sped', 'edf', 'ecd'],
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -46,6 +47,9 @@ setup(
     long_description = open('README.rst').read(),
     install_requires=[
         # List of dependencies is moved to requirements.txt
+    ],
+    setup_requires=[
+        "flake8"
     ],
     tests_require=[
         # List of dependencies is moved to test-requirements.txt

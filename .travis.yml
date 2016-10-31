@@ -25,6 +25,6 @@ install:
   - bin/pip install -r test-requirements.txt
 
 script:
+  - bin/python setup.py flake8
+  - bin/python setup.py lint
   - bin/python setup.py test
-
-
