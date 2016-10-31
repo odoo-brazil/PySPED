@@ -15,6 +15,11 @@ addons:
       - libxml2-dev
       - libxmlsec1-dev
 
+env:
+  - LINT="1" FLAKE="0" TEST="0"
+  - LINT="0" FLAKE="1" TEST="0"
+  - LINT="0" FLAKE="0" TEST="1"
+
 before_install:
   - sudo locale-gen en_US en_US.UTF-8 pt_BR.UTF-8
   - sudo dpkg-reconfigure locales
@@ -25,6 +30,4 @@ install:
   - bin/pip install -r test-requirements.txt
 
 script:
-  - bin/python setup.py flake8
-  - bin/python setup.py lint
-  - bin/python setup.py test
+  - sh travis_run_script.sh
