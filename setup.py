@@ -49,7 +49,7 @@ setup(
     long_description = open('README.rst').read(),
     requires=[
         'lxml(>=3.7.3)',
-        'xmlsec(>=1.0.7)',
+        'signxml(>=2.2.4)',
         'Geraldo(>=0.4.16)',
         'qrcode(>=5.3)',
         'py3o.template(>=0.9.11)',
