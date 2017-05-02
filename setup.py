@@ -53,7 +53,8 @@ setup(
         'Geraldo',
         'qrcode',
         'py3o.template',
-        'sh'
+        'sh',
+	'pytz',
     ],
     tests_require=test_requirements,
 )
