@@ -54,7 +54,7 @@ setup(
         'qrcode',
         'py3o.template',
         'sh',
-	'pytz',
+        'pytz',
     ],
     tests_require=test_requirements,
 )
