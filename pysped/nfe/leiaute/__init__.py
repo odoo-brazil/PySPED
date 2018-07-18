@@ -330,7 +330,7 @@ from .consstatserv_310 import RetConsStatServ as RetConsStatServ_310
 #
 # Versão 4.00, usada a partir de agosto/2017
 #
-ESQUEMA_ATUAL_VERSAO_4 = 'pl_009_v4'
+ESQUEMA_ATUAL_VERSAO_4 = 'pl_009_v4b'
 
 #
 # Emissão de NFC-e
