@@ -47,6 +47,9 @@ setup(
     license = 'LGPL-v2.1+',
     description = 'PySPED is a library to implement all requirements of the Brazilian Public System of Digital Bookkeeping',
     long_description = open('README.rst').read(),
+    dependency_links=[
+        'http://github.com/odoo-brazil/pybrasil/tarball/master#egg=pybrasil-0.0.0.2',
+    ],
     install_requires=[
 	'lxml >= 3.8.0',
 	'qrcode >=5.3',
@@ -59,6 +62,7 @@ setup(
         'Geraldo==0.4.17',
         'Genshi==0.7',
         'future==0.16.0',
+        'pybrasil==0.0.0.2',
     ],
     tests_require=test_requirements,
 )
