@@ -57,6 +57,8 @@ setup(
 	'pytz==2017.2',
         'py3o.template==0.9.13',
         'Geraldo==0.4.17',
+        'Genshi==0.7',
+        'future==0.16.0',
     ],
     tests_require=test_requirements,
 )
