@@ -12,4 +12,5 @@ PySPED is a library to implement all requirements of the public system of bookke
 Install
 -------
 
-sudo python setup.py install
+pip install -U . --process-dependency-links
+
