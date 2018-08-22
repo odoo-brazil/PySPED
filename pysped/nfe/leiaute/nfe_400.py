@@ -1400,8 +1400,9 @@ class InfNFe(nfe_310.InfNFe):
         xml += self.retirada.xml
         xml += self.entrega.xml
 
-        for a in self.autXML:
-            xml += a.xml
+        if self.emit.CNPJ.valor != self.dest.CNPJ.valor:
+            for a in self.autXML:
+                xml += a.xml
 
         for d in self.det:
             d.imposto.ICMS.regime_tributario = self.emit.CRT.valor
