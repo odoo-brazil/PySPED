@@ -701,6 +701,7 @@ class Imposto(nfe_310.Imposto):
     def __init__(self):
         super(Imposto, self).__init__()
         self.ICMS = ICMS()
+        self.ICMSUFDest = ICMSUFDest()
         self.vTotTrib = TagDecimal(nome='vTotTrib', codigo='M02', tamanho=[1, 15, 1], decimais=[0,  2,  2], raiz='//det/imposto', obrigatorio=True)
 
 
