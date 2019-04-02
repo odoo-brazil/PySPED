@@ -51,14 +51,18 @@ DIRNAME = os.path.dirname(__file__)
 class NFeCabecMsg(XMLNFe):
     def __init__(self):
         super(NFeCabecMsg, self).__init__()
-        self.webservice = ''
+        self.webservice  = ''
+        self.versao      = '3.10'
         self.cUF         = TagInteiro(nome='cUF'        , codigo='', raiz='//cabecMsg', tamanho=[2, 2], valor=35)
         self.versaoDados = TagDecimal(nome='versaoDados', codigo='', raiz='//cabecMsg', tamanho=[1, 4], valor='2.00')
 
     def get_xml(self):
         xml = XMLNFe.get_xml(self)
         xml += '<nfeCabecMsg xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/' + self.webservice + '">'
-        xml += self.cUF.xml
+
+        if self.versao == '3.10':
+            xml += self.cUF.xml
+
         xml += self.versaoDados.xml
         xml += '</nfeCabecMsg>'
         return xml
@@ -97,9 +101,11 @@ class SOAPEnvio(XMLNFe):
         super(SOAPEnvio, self).__init__()
         self.webservice = ''
         self.metodo = ''
+        self.versao = '3.10'
         self.cUF    = None
         self.envio  = None
         self.nfeCabecMsg = NFeCabecMsg()
+        self.nfeCabecMsg.versao = self.versao
         self.nfeDadosMsg = NFeDadosMsg()
         self._header = {b'content-type': b'application/soap+xml; charset=utf-8'}
         self.soap_action_webservice_e_metodo = False
@@ -120,9 +126,14 @@ class SOAPEnvio(XMLNFe):
         xml = XMLNFe.get_xml(self)
         xml += ABERTURA
         xml += '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">'
-        xml +=     '<soap:Header>'
-        xml +=             self.nfeCabecMsg.xml
-        xml +=     '</soap:Header>'
+
+        if self.versao < '4.00':
+            xml +=     '<soap:Header>'
+            xml +=             self.nfeCabecMsg.xml
+            xml +=     '</soap:Header>'
+        else:
+            xml +=     '<soap:Header />'
+
         xml +=     '<soap:Body>'
         xml +=             self.nfeDadosMsg.xml
         xml +=     '</soap:Body>'
@@ -135,6 +146,11 @@ class SOAPEnvio(XMLNFe):
     xml = property(get_xml, set_xml)
 
     def get_header(self):
+        if self.soap_action_webservice_e_metodo:
+            self._header[b'content-type'] = b'application/soap+xml; charset=utf-8; action="http://www.portalfiscal.inf.br/nfe/wsdl/' + self.webservice.encode('utf-8') + b'/' + self.metodo.encode('utf-8') + b'"'
+        else:
+            self._header[b'content-type'] = b'application/soap+xml; charset=utf-8; action="http://www.portalfiscal.inf.br/nfe/wsdl/' + self.webservice.encode('utf-8') + b'"'
+
         header = self._header
         return header
 

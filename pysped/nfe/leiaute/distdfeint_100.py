@@ -39,13 +39,23 @@
 # <http://www.gnu.org/licenses/>
 #
 
-from __future__ import division, print_function, unicode_literals
+from __future__ import (division, print_function, unicode_literals,
+                        absolute_import)
+
+import sys
+from builtins import str
+from io import BytesIO
+import base64
+import unicodedata
+import os
+import gzip
 
 from pysped.xml_sped import (ABERTURA, NAMESPACE_NFE, Signature, TagCaracter,
-                             TagDataHora, TagDecimal, TagInteiro, XMLNFe)
-from pysped.nfe.leiaute import ESQUEMA_ATUAL_VERSAO_3 as ESQUEMA_ATUAL
+                             TagDataHora, TagDecimal, TagInteiro, XMLNFe,
+                             TagDataHoraUTC)
+from pysped.nfe.leiaute import ESQUEMA_ATUAL_VERSAO_4 as ESQUEMA_ATUAL
 from pysped.nfe.leiaute.soap_200 import NFeDadosMsg
-import os
+from pysped.nfe.leiaute import ProcNFe_310, ProcEvento_100, ProcNFe_400
 
 
 DIRNAME = os.path.dirname(__file__)
@@ -95,18 +105,41 @@ class ConsNSU(XMLNFe):
     xml = property(get_xml, set_xml)
 
 
+class ConsChNFe(XMLNFe):
+    def __init__(self):
+        super(ConsChNFe, self).__init__()
+        self.chNFe = TagCaracter(nome='chNFe', tamanho=[44, 44], raiz='//distDFeInt/consChNFe', valor='')
+
+    def get_xml(self):
+        if not self.chNFe.valor:
+            return ''
+
+        xml = XMLNFe.get_xml(self)
+        xml += '<consChNFe>'
+        xml += self.chNFe.xml
+        xml += '</consChNFe>'
+        return xml
+
+    def set_xml(self, arquivo):
+        if self._le_xml(arquivo):
+            self.chNFe.xml = arquivo
+
+    xml = property(get_xml, set_xml)
+
+
 class DistDFeInt(XMLNFe):
     def __init__(self):
         super(DistDFeInt, self).__init__()
-        self.versao   = TagDecimal(nome='distDFeInt', propriedade='versao', namespace=NAMESPACE_NFE, valor='1.00', raiz='/')
+        self.versao   = TagDecimal(nome='distDFeInt', propriedade='versao', namespace=NAMESPACE_NFE, valor='1.01', raiz='/')
         self.tpAmb    = TagInteiro(nome='tpAmb'     , tamanho=[1, 1, 1], raiz='//distDFeInt', valor=2)
         self.cUFAutor = TagInteiro(nome='cUFAutor'  , tamanho=[2, 2, 2], raiz='//distDFeInt')
         self.CNPJ     = TagCaracter(nome='CNPJ'     , tamanho=[14, 14] , raiz='//distDFeInt', obrigatorio=False)
         self.CPF      = TagCaracter(nome='CPF'      , tamanho=[11, 11] , raiz='//distDFeInt', obrigatorio=False)
         self.distNSU  = DistNSU()
         self.consNSU  = ConsNSU()
+        self.consChNFe  = ConsChNFe()
         self.caminho_esquema = os.path.join(DIRNAME, 'schema', ESQUEMA_ATUAL + '/')
-        self.arquivo_esquema = 'distDFeInt_v1.00.xsd'
+        self.arquivo_esquema = 'distDFeInt_v1.01.xsd'
 
     def get_xml(self):
         xml = XMLNFe.get_xml(self)
@@ -120,7 +153,9 @@ class DistDFeInt(XMLNFe):
         else:
             xml += self.CPF.xml
 
-        if self.consNSU.NSU.valor is not None and self.consNSU.NSU.valor != '':
+        if self.consChNFe.chNFe.valor is not None and self.consChNFe.chNFe.valor != '':
+            xml += self.consChNFe.xml
+        elif self.consNSU.NSU.valor is not None and self.consNSU.NSU.valor != '':
             xml += self.consNSU.xml
         else:
             xml += self.distNSU.xml
@@ -137,6 +172,107 @@ class DistDFeInt(XMLNFe):
             self.CPF.xml   = arquivo
             self.distNSU.xml    = arquivo
             self.consNSU.xml    = arquivo
+            self.consChNFe.xml  = arquivo
+
+    xml = property(get_xml, set_xml)
+
+
+class ResNFe(XMLNFe):
+    def __init__(self):
+        super(ResNFe, self).__init__()
+        self.chNFe    = TagCaracter(nome='chNFe' , tamanho=[44, 44], raiz='//resNFe')
+        self.CNPJ     = TagCaracter(nome='CNPJ'  , tamanho=[14, 14], raiz='//resNFe', obrigatorio=False)
+        self.CPF      = TagCaracter(nome='CPF'   , tamanho=[11, 11], raiz='//resNFe', obrigatorio=False)
+        self.xNome    = TagCaracter(nome='xNome' , tamanho=[ 1, 60], raiz='//resNFe')
+        self.IE       = TagCaracter(nome='IE'    , tamanho=[ 2, 14], raiz='//resNFe', obrigatorio=False)
+        self.dhEmi    = TagDataHoraUTC(nome='dhEmi',                   raiz='//resNFe', obrigatorio=False)
+        self.tpNF     = TagCaracter(nome='tpNF'  , tamanho=[ 1,  1], raiz='//resNFe')
+        self.vNF      = TagDecimal(nome='vNF'    , tamanho=[1, 15, 1], decimais=[0, 2, 2], raiz='//resNFe')
+        self.digVal   = TagCaracter(nome='digVal', tamanho=[28, 28], raiz='//resNFe')
+        self.dhRecbto = TagDataHoraUTC(nome='dhRecbto', raiz='//resNFe')
+        self.cSitNFe  = TagCaracter(nome='cSitNFe', tamanho=[ 1,  1], raiz='//resNFe')
+        self.cSitConf = TagCaracter(nome='cSitConf', tamanho=[ 1,  1], raiz='//resNFe', obrigatorio=False)
+
+    def get_xml(self):
+        xml = XMLNFe.get_xml(self)
+        xml += ABERTURA
+        xml += '<resNFe>'
+        xml += self.chNFe.xml
+        xml += self.CNPJ.xml
+        xml += self.CPF.xml
+        xml += self.xNome.xml
+        xml += self.IE.xml
+        xml += self.dhEmi.xml
+        xml += self.tpNF.xml
+        xml += self.vNF.xml
+        xml += self.digVal.xml
+        xml += self.dhRecbto.xml
+        xml += self.cSitNFe.xml
+        xml += self.cSitConf.xml
+        xml += '</resNFe>'
+        return xml
+
+    def set_xml(self, arquivo):
+        if self._le_xml(arquivo):
+            self.chNFe.xml   = arquivo
+            self.CNPJ.xml   = arquivo
+            self.CPF.xml   = arquivo
+            self.xNome.xml   = arquivo
+            self.IE.xml   = arquivo
+            self.dhEmi.xml   = arquivo
+            self.tpNF.xml   = arquivo
+            self.vNF.xml   = arquivo
+            self.digVal.xml   = arquivo
+            self.dhRecbto.xml   = arquivo
+            self.cSitNFe.xml   = arquivo
+            self.cSitConf.xml   = arquivo
+
+    xml = property(get_xml, set_xml)
+
+
+class ResEvento(XMLNFe):
+    def __init__(self):
+        super(ResEvento, self).__init__()
+        self.cOrgao     = TagInteiro(nome='cOrgao'      , tamanho=[ 2,  2], raiz='//resEvento')
+        self.CNPJ       = TagCaracter(nome='CNPJ'       , tamanho=[14, 14], raiz='//resEvento', obrigatorio=False)
+        self.CPF        = TagCaracter(nome='CPF'        , tamanho=[11, 11], raiz='//resEvento', obrigatorio=False)
+        self.chNFe      = TagCaracter(nome='chNFe'      , tamanho=[44, 44], raiz='//resEvento')
+        self.dhEvento   = TagDataHoraUTC(nome='dhEvento',                   raiz='//resEvento')
+        self.tpEvento   = TagCaracter(nome='tpEvento'   , tamanho=[ 6,  6], raiz='//resEvento')
+        self.nSeqEvento = TagInteiro(nome='nSeqEvento'  , tamanho=[ 1,  2], raiz='//resEvento')
+        self.xEvento    = TagCaracter(nome='xEvento'    , tamanho=[ 1, 60], raiz='//resEvento')
+        self.dhRecbto   = TagDataHoraUTC(nome='dhRecbto',                   raiz='//resEvento')
+        self.nProt      = TagCaracter(nome='nProt'      , tamanho=[15, 15], raiz='//resEvento')
+
+    def get_xml(self):
+        xml = XMLNFe.get_xml(self)
+        xml += ABERTURA
+        xml += '<resEvento>'
+        xml += self.cOrgao.xml
+        xml += self.CNPJ.xml
+        xml += self.CPF.xml
+        xml += self.chNFe.xml
+        xml += self.dhEvento.xml
+        xml += self.tpEvento.xml
+        xml += self.nSeqEvento.xml
+        xml += self.xEvento.xml
+        xml += self.dhRecbto.xml
+        xml += self.nProt.xml
+        xml += '</resEvento>'
+        return xml
+
+    def set_xml(self, arquivo):
+        if self._le_xml(arquivo):
+            self.cOrgao.xml   = arquivo
+            self.CNPJ.xml   = arquivo
+            self.CPF.xml   = arquivo
+            self.chNFe.xml   = arquivo
+            self.dhEvento.xml   = arquivo
+            self.tpEvento.xml   = arquivo
+            self.nSeqEvento.xml   = arquivo
+            self.xEvento.xml   = arquivo
+            self.dhRecbto.xml   = arquivo
+            self.nProt.xml   = arquivo
 
     xml = property(get_xml, set_xml)
 
@@ -144,17 +280,19 @@ class DistDFeInt(XMLNFe):
 class DocZip(XMLNFe):
     def __init__(self):
         super(DocZip, self).__init__()
-        self.NSU    = TagCaracter(nome='docZip', propriedade='NSU'   , namespace=NAMESPACE_NFE, raiz='')
-        self.schema = TagCaracter(nome='docZip', propriedade='schema', namespace=NAMESPACE_NFE, raiz='')
-        self.base64Binary = TagCaracter(nome='docZip', namespace=NAMESPACE_NFE, raiz='')
+        self.NSU    = TagCaracter(nome='docZip', propriedade='NSU'   , namespace=NAMESPACE_NFE, raiz='/')
+        self.schema = TagCaracter(nome='docZip', propriedade='schema', namespace=NAMESPACE_NFE, raiz='/')
+        self.docZip = TagCaracter(nome='docZip', namespace=NAMESPACE_NFE, raiz='/')
 
     def get_xml(self):
         xml = XMLNFe.get_xml(self)
 
-        xml += self.NSU.xml
-        xml += self.schema.xml
-        xml += self.base64Binary.xml
-
+        xml += '<docZip NSU="'
+        xml += self.NSU.valor
+        xml += '" schema="'
+        xml += self.schema.valor
+        xml += '">'
+        xml += self.docZip.valor
         xml += '</docZip>'
         return xml
 
@@ -162,9 +300,63 @@ class DocZip(XMLNFe):
         if self._le_xml(arquivo):
             self.NSU.xml    = arquivo
             self.schema.xml = arquivo
-            self.base64Binary.xml = arquivo
+            self.docZip.xml = arquivo
 
     xml = property(get_xml, set_xml)
+
+    @property
+    def texto(self):
+        if not self.docZip.valor:
+            return ''
+
+        arq = BytesIO()
+        arq.write(base64.b64decode(self.docZip.valor))
+        arq.seek(0)
+        zip = gzip.GzipFile(fileobj=arq)
+        texto = zip.read()
+        arq.close()
+        zip.close()
+        return ABERTURA + texto.decode('utf-8')
+
+    @property
+    def resposta(self):
+        if not self.texto:
+            return None
+
+        resposta = None
+        if self.schema.valor in ('resNFe_v1.00.xsd', 'resNFe_v1.01.xsd'):
+            resposta = ResNFe()
+
+            if sys.version_info.major == 2:
+                texto = unicodedata.normalize(b'NFKD', self.texto).encode('ascii', 'ignore')
+            else:
+                texto = unicodedata.normalize('NFKD', self.texto).encode('ascii', 'ignore')
+
+            resposta.xml = texto.decode('utf-8')
+
+        elif self.schema.valor in ('resEvento_v1.00.xsd', 'resEvento_v1.01.xsd'):
+            resposta = ResEvento()
+
+            if sys.version_info.major == 2:
+                texto = unicodedata.normalize(b'NFKD', self.texto).encode('ascii', 'ignore')
+            else:
+                texto = unicodedata.normalize('NFKD', self.texto).encode('ascii', 'ignore')
+
+            resposta.xml = texto.decode('utf-8')
+
+        elif self.schema.valor == 'procNFe_v3.10.xsd':
+            resposta = ProcNFe_310()
+            resposta.xml = self.texto
+
+        elif self.schema.valor == 'procNFe_v4.00.xsd':
+            resposta = ProcNFe_400()
+            resposta.xml = self.texto
+
+        elif self.schema.valor == 'procEventoNFe_v1.00.xsd':
+            resposta = ProcEvento_100()
+            resposta.xml = self.texto
+
+        return resposta
 
 
 class LoteDistDFeInt(XMLNFe):
@@ -207,7 +399,7 @@ class RetDistDFeInt(XMLNFe):
         self.verAplic = TagCaracter(nome='verAplic'    , tamanho=[1, 20]  , raiz='//retDistDFeInt')
         self.cStat    = TagCaracter(nome='cStat'       , tamanho=[3, 3, 3], raiz='//retDistDFeInt')
         self.xMotivo  = TagCaracter(nome='xMotivo'     , tamanho=[1, 255] , raiz='//retDistDFeInt')
-        self.dhResp   = TagDataHora(nome='dhResp'                      , raiz='//retDistDFeInt')
+        self.dhResp   = TagDataHoraUTC(nome='dhResp'                      , raiz='//retDistDFeInt')
         self.ultNSU   = TagCaracter(nome='ultNSU'      , tamanho=[1, 15]  , raiz='//retDistDFeInt', obrigatorio=False)
         self.maxNSU   = TagCaracter(nome='maxNSU'      , tamanho=[1, 15]  , raiz='//retDistDFeInt', obrigatorio=False)
         self.loteDistDFeInt = LoteDistDFeInt()

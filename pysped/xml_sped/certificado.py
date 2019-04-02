@@ -41,6 +41,8 @@
 
 from __future__ import division, print_function, unicode_literals
 
+from io import open
+import sys
 import os
 import base64
 import signxml
@@ -76,16 +78,21 @@ class Certificado(object):
             return
 
         # Lendo o arquivo pfx no formato pkcs12 como binário
-        if self.stream_certificado is not None:
-            pkcs12 = crypto.load_pkcs12(self.stream_certificado, self.senha)
-        else:
-            pkcs12 = crypto.load_pkcs12(open(self.arquivo, 'rb').read(), self.senha)
+        if self.stream_certificado is None:
+            self.stream_certificado = open(self.arquivo, 'rb').read()
+
+        pkcs12 = crypto.load_pkcs12(self.stream_certificado, self.senha)
 
         # Retorna a string decodificada da chave privada
         self.chave = crypto.dump_privatekey(crypto.FILETYPE_PEM, pkcs12.get_privatekey())
 
         # Retorna a string decodificada do certificado
-        self.prepara_certificado_txt(crypto.dump_certificate(crypto.FILETYPE_PEM, pkcs12.get_certificate()))
+        certificado = crypto.dump_certificate(crypto.FILETYPE_PEM, pkcs12.get_certificate())
+
+        if sys.version_info.major == 3:
+            certificado = certificado.decode('utf-8')
+
+        self.prepara_certificado_txt(certificado)
 
         self._certificado_preparado = True
 
@@ -93,7 +100,10 @@ class Certificado(object):
         if self._certificado_preparado:
             return
 
-        self.prepara_certificado_txt(open(self.arquivo, 'rb').read())
+        if self.stream_certificado is None:
+            self.stream_certificado = open(self.arquivo, 'rb').read()
+
+        self.prepara_certificado_txt(self.stream_certificado)
 
         self._certificado_preparado = True
 
@@ -115,18 +125,42 @@ class Certificado(object):
 
         cert_openssl = crypto.load_certificate(crypto.FILETYPE_PEM, self.certificado)
         self.cert_openssl = cert_openssl
-
-        self._emissor = dict(cert_openssl.get_issuer().get_components())
-        self._proprietario = dict(cert_openssl.get_subject().get_components())
         self._numero_serie = cert_openssl.get_serial_number()
-        self._data_inicio_validade = datetime.strptime(cert_openssl.get_notBefore(), '%Y%m%d%H%M%SZ')
-        self._data_inicio_validade = UTC.localize(self._data_inicio_validade)
-        self._data_fim_validade    = datetime.strptime(cert_openssl.get_notAfter(), '%Y%m%d%H%M%SZ')
-        self._data_fim_validade    = UTC.localize(self._data_fim_validade)
 
         for i in range(cert_openssl.get_extension_count()):
             extensao = cert_openssl.get_extension(i)
             self._extensoes[extensao.get_short_name()] = extensao.get_data()
+
+        self._emissor = {}
+        for chave, valor in cert_openssl.get_issuer().get_components():
+            chave = chave.decode('utf-8')
+            valor = valor.decode('utf-8')
+            self._emissor[chave] = valor
+
+        self._proprietario = {}
+        for chave, valor in cert_openssl.get_subject().get_components():
+            chave = chave.decode('utf-8')
+            valor = valor.decode('utf-8')
+            self._proprietario[chave] = valor
+
+        if sys.version_info.major == 3:
+            self._data_inicio_validade = \
+                datetime.strptime(cert_openssl.get_notBefore().decode('utf-8'), '%Y%m%d%H%M%SZ')
+            self._data_fim_validade    = \
+                datetime.strptime(cert_openssl.get_notAfter().decode('utf-8'), '%Y%m%d%H%M%SZ')
+
+        else:
+            #self._emissor = dict(cert_openssl.get_issuer().get_components())
+            #self._proprietario = dict(cert_openssl.get_subject().get_components())
+            self._data_inicio_validade = \
+                datetime.strptime(cert_openssl.get_notBefore(), '%Y%m%d%H%M%SZ')
+            self._data_fim_validade    = \
+                datetime.strptime(cert_openssl.get_notAfter(), '%Y%m%d%H%M%SZ')
+
+        self._data_inicio_validade = \
+            UTC.localize(self._data_inicio_validade)
+        self._data_fim_validade    = \
+            UTC.localize(self._data_fim_validade)
 
     def _set_arquivo(self, arquivo):
         self._arquivo = arquivo
@@ -151,7 +185,7 @@ class Certificado(object):
 
     def _get_chave(self):
         try:
-            if self._chave: # != ''
+            if self._chave:
                 return self._chave
             else:
                 raise AttributeError("'chave' precisa ser regenerada")
@@ -169,7 +203,7 @@ class Certificado(object):
 
     def _get_certificado(self):
         try:
-            if self._certificado:   # != ''
+            if self._certificado:
                 return self._certificado
             else:
                 raise AttributeError("'certificado' precisa ser regenerado")
@@ -186,7 +220,7 @@ class Certificado(object):
     def proprietario_nome(self):
         if 'CN' in self.proprietario:
             #
-            # Alguns certrificados não têm o CNPJ na propriedade CN, somente o
+            # Alguns certificados não têm o CNPJ na propriedade CN, somente o
             # nome do proprietário
             #
             if ':' in self.proprietario['CN']:
@@ -204,7 +238,7 @@ class Certificado(object):
     def proprietario_cnpj(self):
         if 'CN' in self.proprietario:
             #
-            # Alguns certrificados não têm o CNPJ na propriedade CN, somente o
+            # Alguns certificados não têm o CNPJ na propriedade CN, somente o
             # nome do proprietário
             #
             if ':' in self.proprietario['CN']:
@@ -295,7 +329,7 @@ class Certificado(object):
         doc.Signature.xml = xml
 
     def assina_arquivo(self, doc):
-        xml = open(doc, 'r').read().decode('utf-8')
+        xml = open(doc, 'r', encoding='utf-8').read()
         xml = self.assina_xml(xml)
         return xml
 
@@ -347,8 +381,9 @@ class Certificado(object):
         return doctype
 
     def _prepara_doc_xml(self, xml):
-        if isinstance(xml, str):
-            xml = unicode(xml.encode('utf-8'))
+        if sys.version_info.major == 2:
+            if isinstance(xml, str):
+                xml = unicode(xml.encode('utf-8'))
 
         doctype = self._obtem_doctype(xml)
 
@@ -369,8 +404,9 @@ class Certificado(object):
         return xml
 
     def _finaliza_xml(self, xml):
-        if isinstance(xml, str):
-            xml = unicode(xml.decode('utf-8'))
+        if sys.version_info.major == 2:
+            if isinstance(xml, str):
+                xml = unicode(xml.decode('utf-8'))
 
         doctype = self._obtem_doctype(xml)
 
@@ -417,7 +453,7 @@ class Certificado(object):
         #
         # Retransforma o documento xml em texto
         #
-        xml = etree.tostring(doc_xml)
+        xml = etree.tounicode(doc_xml)
 
         xml = self._finaliza_xml(xml)
 
