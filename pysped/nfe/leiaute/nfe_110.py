@@ -2475,10 +2475,10 @@ class Dup(XMLNFe):
 class Fat(XMLNFe):
     def __init__(self):
         super(Fat, self).__init__()
-        self.nFat  = TagCaracter(nome='nFat', codigo='Y03', tamanho=[1, 60],                        raiz='//NFe/infNFe/cobr/fat', obrigatorio=False)
-        self.vOrig = TagDecimal(nome='vOrig', codigo='Y04', tamanho=[1, 15, 1], decimais=[0, 2, 2], raiz='//NFe/infNFe/cobr/fat', obrigatorio=False)
+        self.nFat  = TagCaracter(nome='nFat', codigo='Y03', tamanho=[1, 60],                        raiz='//NFe/infNFe/cobr/fat', obrigatorio=True)
+        self.vOrig = TagDecimal(nome='vOrig', codigo='Y04', tamanho=[1, 15, 1], decimais=[0, 2, 2], raiz='//NFe/infNFe/cobr/fat', obrigatorio=True)
         self.vDesc = TagDecimal(nome='vDesc', codigo='Y05', tamanho=[1, 15, 1], decimais=[0, 2, 2], raiz='//NFe/infNFe/cobr/fat', obrigatorio=True)
-        self.vLiq  = TagDecimal(nome='vLiq' , codigo='Y06', tamanho=[1, 15, 1], decimais=[0, 2, 2], raiz='//NFe/infNFe/cobr/fat', obrigatorio=False)
+        self.vLiq  = TagDecimal(nome='vLiq' , codigo='Y06', tamanho=[1, 15, 1], decimais=[0, 2, 2], raiz='//NFe/infNFe/cobr/fat', obrigatorio=True)
 
     def get_xml(self):
         if not (self.nFat.valor or self.vOrig.valor or self.vDesc.valor or self.vLiq.valor):
